@@ -1,0 +1,25 @@
+{
+  "name": "worklogger",
+  "main": "index.html",
+  "version": "0.1.0",
+  "description": "Log work in Jira from your desktop",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "jira",
+    "worklog",
+    "widget"
+  ],
+  "author": "Santiago Figueiras",
+  "license": "ISC",
+  "devDependencies": {
+    "gulp": "^3.9.1"
+  },
+  "dependencies": {
+    "jira-client": "^6.4.1",
+    "request": "^2.86.0",
+    "vue": "^2.5.16",
+    "vue-on-click-outside": "^1.0.3"
+  }
+}
