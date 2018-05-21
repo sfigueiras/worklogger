@@ -132,13 +132,28 @@
 
     <main>
         <div class="input-group">
+            <label>Host</label>
+            <input type="text" v-model="jiraConfig.host">
+        </div>
+
+        <div class="input-group">
+            <label>Username</label>
+            <input type="text" v-model="jiraConfig.username">
+        </div>
+
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" v-model="jiraConfig.password">
+        </div>
+
+        <div class="input-group">
             <div class="search-box">
                 <label for="search-issue">Search Issue</label>
                 <div class="search-input" v-click-outside="close">
                     <input id="search-issue" type="text" name="search-issue" @keyup="filterIssues" @click="filterIssues"
                            v-model="query"
                            :disabled="!issuesLoaded" :placeholder="searchPlaceholder" autofocus>
-                    <ul v-show="showSearchResults" class="search-results" >
+                    <ul v-show="showSearchResults" class="search-results">
                         <li v-for="issue in filteredIssues" :value="issue.key" @click="setIssueKey(issue.key)"
                             class="search-result">
                             {{ issue.key }} - {{ issue.fields.summary }}
@@ -161,7 +176,8 @@
 
         <div class="input-group">
             <label for="description">Description</label>
-            <textarea id="description" name="description" v-model="worklog.comment" :value="worklog.comment" rows="4"></textarea>
+            <textarea id="description" name="description" v-model="worklog.comment" :value="worklog.comment"
+                      rows="4"></textarea>
         </div>
 
         <button class="button" @click="sendWorklog" :disabled="sendingWorklog">{{ sendButtonText }}</button>
@@ -196,14 +212,13 @@
     new Vue({
         el: '#app',
         data: {
-            jira: new JiraApi({
-                protocol: 'https',
-                host: '',
-                username: '',
-                password: '',
-                apiVersion: '2',
-                strictSSL: true
-            }),
+            jiraConfig: {
+                host: 'ubykuo.atlassian.net',
+                username: 'admin',
+                password: 'vamoalmega95'
+            },
+
+            // Issue list
             issues: [],
             issuesLoaded: false,
 
@@ -240,15 +255,25 @@
                 this.showSearchResults = false;
             },
 
+            getJiraClient () {
+                return new JiraApi(Object.assign(this.jiraConfig, {
+                    protocol: 'https',
+                    apiVersion: '2',
+                    strictSSL: true
+                }));
+            },
+
             getUserIssues (username) {
-                this.jira.getUsersIssues(username, false)
+                this.getJiraClient().getUsersIssues(username, false)
                     .then(function (response) {
                         console.log(response);
                         this.issues = response.issues;
                         this.issuesLoaded = true;
                         this.setSearchPlaceholder()
-                    }.bind(this));
+                    }.bind(this))
+                    .catch(error => console.log(error));
             },
+
             filterIssues: function filterIssues () {
                 this.filteredIssues = this.issues.filter(function (issue) {
                     return issue.key.search(this.query) !== -1 || issue.fields.summary.toLowerCase().search(this.query.toLowerCase()) !== -1;
@@ -277,7 +302,7 @@
             sendWorklog () {
                 this.sendingWorklog = true;
                 this.sendButtonText = this.sendingText;
-                this.jira.addWorklog(this.worklog.issueKey, {
+                this.getJiraClient().addWorklog(this.worklog.issueKey, {
                     timeSpent: this.worklog.timeSpent,
                     comment: this.worklog.comment,
                     started: `${this.worklog.date}T${this.worklog.time}:18.932${this.worklog.timezone}`
