@@ -1,10 +1,17 @@
 {
   "name": "worklogger",
-  "main": "index.html",
+  "main": "main.js",
   "version": "0.1.0",
-  "description": "Log work in Jira from your desktop",
+  "description": "Log work to Jira issues at warp speed from your desktop.",
+  "build": {
+    "nwVersion": "0.14.7"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dist": "build --tasks linux-x64 --mirror https://dl.nwjs.io/ .",
+    "start": "run --x86 --mirror https://dl.nwjs.io/ ."
+  },
+  "window": {
+    "icon": "clock.png"
   },
   "keywords": [
     "jira",
@@ -14,12 +21,12 @@
   "author": "Santiago Figueiras",
   "license": "ISC",
   "devDependencies": {
-    "gulp": "^3.9.1"
+    "gulp": "^3.9.1",
+    "nwjs-builder-phoenix": "^1.14.6"
   },
   "dependencies": {
     "jira-client": "^6.4.1",
     "request": "^2.86.0",
-    "vue": "^2.5.16",
-    "vue-on-click-outside": "^1.0.3"
+    "vue": "^2.5.16"
   }
 }

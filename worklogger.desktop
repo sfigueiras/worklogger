@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=0.1.0
+Name=worklogger
+Comment=Log work to Jira issues at warp speed from your desktop.
+Exec=worklogger
+Icon=
+Terminal=false
+Type=Application
+Categories=Utility;Application;

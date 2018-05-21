@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>worklogger</title>
+    <title>ubykuo Worklogger</title>
     <style>
         @import url('https://fonts.googleapis.com/css?family=Tajawal');
         @import url('https://fonts.googleapis.com/css?family=Raleway');
@@ -36,6 +36,7 @@
             align-items: center;
             justify-content: space-around;
             flex-direction: column;
+            padding: 10px;
         }
 
         #app footer {
@@ -54,6 +55,7 @@
             background-color: transparent;
             border-bottom: 2px solid #330066;
             width: 60vw;
+            outline: none !important;
         }
 
         .input-group,
@@ -70,15 +72,17 @@
             list-style: none;
             padding: 0;
             position: absolute;
+            top: 5px;
             max-height: 40vh;
             overflow-y: scroll;
             overflow-x: hidden;
             background-color: white;
             width: 100%;
+            box-shadow: 0px 2px 20px -5px black;
         }
 
         .search-result {
-            padding: 10px 10px 10px 0;
+            padding: 10px 10px 10px 5px;
             cursor: pointer;
         }
 
@@ -87,6 +91,7 @@
         }
 
         .button {
+            margin-top: 15px;
             padding: 10px 0;
             color: #fff;
             border: none;
@@ -102,9 +107,18 @@
             -o-transition: .3s linear;
             transition: .3s linear;
         }
-        
+
         .button:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
+        }
+
+        .button[disabled] {
+            background-color: #eeeeee;
+        }
+
+        .hint {
+            color: darkgrey;
+            font-size: 0.8em !important;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
@@ -120,10 +134,11 @@
         <div class="input-group">
             <div class="search-box">
                 <label for="search-issue">Search Issue</label>
-                <div class="search-input">
-                    <input id="search-issue" type="text" name="search-issue" @keyup="filterIssues" @click="filterIssues" v-model="query"
+                <div class="search-input" v-click-outside="close">
+                    <input id="search-issue" type="text" name="search-issue" @keyup="filterIssues" @click="filterIssues"
+                           v-model="query"
                            :disabled="!issuesLoaded" :placeholder="searchPlaceholder" autofocus>
-                    <ul v-show="showSearchResults" class="search-results">
+                    <ul v-show="showSearchResults" class="search-results" >
                         <li v-for="issue in filteredIssues" :value="issue.key" @click="setIssueKey(issue.key)"
                             class="search-result">
                             {{ issue.key }} - {{ issue.fields.summary }}
@@ -134,21 +149,22 @@
         </div>
 
         <div class="input-group">
-            <label for="date-time">Date</label>
-            <input id="date-time" name="date-time" type="datetime-local" v-model="date" :value="date">
+            <label>Date</label>
+            <input id="date" name="date" type="date" v-model="worklog.date" :value="worklog.date">
+            <input type="time" v-model="worklog.time" :value="worklog.time">
         </div>
 
         <div class="input-group">
-            <label for="time-spent">Time Spent</label>
-            <input id="time-spent" name="time-spent" type="text">
+            <label for="time-spent">Time Spent <span class="hint">(eg. 3w 4d 12h)</span></label>
+            <input id="time-spent" name="time-spent" type="text" v-model="worklog.timeSpent">
         </div>
 
         <div class="input-group">
-            <label for="description" v-model="comment">Description</label>
-            <textarea id="description" name="description" :value="comment"></textarea>
+            <label for="description">Description</label>
+            <textarea id="description" name="description" v-model="worklog.comment" :value="worklog.comment" rows="4"></textarea>
         </div>
 
-        <button class="button" @click="sendWorklog">Send</button>
+        <button class="button" @click="sendWorklog" :disabled="sendingWorklog">{{ sendButtonText }}</button>
     </main>
 
     <footer>
@@ -159,37 +175,71 @@
 </div>
 
 <script>
-    var onClickOutside = require('vue-on-click-outside').mixin;
-    JiraApi = require('jira-client');
+    var JiraApi = require('jira-client');
+
+    Vue.directive('click-outside', {
+        bind: function (el, binding, vnode) {
+            el.event = function (event) {
+                // here I check that click was outside the el and his childrens
+                if (!(el == event.target || el.contains(event.target))) {
+                    // and if it did, call method provided in attribute value
+                    vnode.context[binding.expression](event);
+                }
+            };
+            document.body.addEventListener('click', el.event)
+        },
+        unbind: function (el) {
+            document.body.removeEventListener('click', el.event)
+        },
+    });
 
     new Vue({
         el: '#app',
         data: {
             jira: new JiraApi({
                 protocol: 'https',
-                host: 'ubykuo.atlassian.net',
-                username: 'admin',
-                password: 'vamoalmega95',
+                host: '',
+                username: '',
+                password: '',
                 apiVersion: '2',
                 strictSSL: true
             }),
             issues: [],
             issuesLoaded: false,
+
+            // Issue search
             filteredIssues: [],
-            issueKey: '',
             query: '',
-            searchEnabledPlaceholder: 'Search for issues by key, for example IT-17',
+            searchEnabledPlaceholder: 'Search for issues by key or summary',
             searchDisabledPlaceholder: 'Issues loading, please wait...',
             searchPlaceholder: '',
             showSearchResults: false,
-            date: new Date(),
-            comment: 'Algo'
+
+            // Worklog information
+            worklog: {
+                issueKey: localStorage.getItem('currentIssueKey') || '',
+                date: new Date().getDate(),
+                time: new Date().getTime(),
+                timezone: '-0300',
+                timeSpent: '',
+                comment: ''
+            },
+
+            // Worklog request
+            sendButtonText: 'Send',
+            sendText: 'Send',
+            sendingText: 'Sending...',
+            sendingWorklog: false
         },
         created () {
             this.getUserIssues('admin');
-            this.setSearchPlaceholder()
+            this.setSearchPlaceholder();
         },
         methods: {
+            close () {
+                this.showSearchResults = false;
+            },
+
             getUserIssues (username) {
                 this.jira.getUsersIssues(username, false)
                     .then(function (response) {
@@ -208,7 +258,7 @@
             },
 
             setIssueKey (key) {
-                this.issueKey = this.query = key;
+                this.worklog.issueKey = this.query = key;
                 this.setShowSearchResults(false);
             },
 
@@ -225,20 +275,27 @@
             },
 
             sendWorklog () {
-                this.jira.addWorklog('IT-139', {
-                    timeSpent: '1m',
-                    timeSpentInSeconds: '60',
-                    comment: this.comment,
-                    started: '2013-09-01T10:30:18.932+0530'
-                }, {})
-                    .then(response => console.log(response))
-                    .catch(error => console.log(error))
+                this.sendingWorklog = true;
+                this.sendButtonText = this.sendingText;
+                this.jira.addWorklog(this.worklog.issueKey, {
+                    timeSpent: this.worklog.timeSpent,
+                    comment: this.worklog.comment,
+                    started: `${this.worklog.date}T${this.worklog.time}:18.932${this.worklog.timezone}`
+                })
+                    .then(response => {
+                        this.sendingWorklog = false;
+                        this.sendButtonText = this.sendText
+                        console.log(response);
+                        localStorage.setItem('currentIssueKey', this.worklog.issueKey);
+                        this.worklog = {};
+                    })
+                    .catch(error => {
+                        this.sendingWorklog = false;
+                        this.sendButtonText = this.sendText
+                        console.log(error);
+                    })
             }
-        },
-        computed: {
-
-        },
-        mixins: [onClickOutside]
+        }
     })
 </script>
 
@@ -249,7 +306,7 @@
     var path = './';
     var fs = require('fs');
 
-    var reloadWatcher=fs.watch(path, function() {
+    var reloadWatcher = fs.watch(path, function () {
         location.reload();
         reloadWatcher.close();
     });
