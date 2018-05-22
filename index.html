@@ -29,7 +29,7 @@
         }
 
         #app header img {
-            height: 100%;
+            height: 45px;
         }
 
         #app header a {
@@ -43,6 +43,10 @@
             justify-content: center;
             flex-direction: column;
             padding: 10px;
+        }
+
+        #app main:first-child {
+            margin-top: 0;
         }
 
         #app footer {
@@ -141,8 +145,13 @@
             transition: background-color .3s;
         }
 
-        .message.present {
+        .message.success {
             background-color: #38e090;
+        }
+
+        .message.error {
+            color: white;
+            background-color: crimson;
         }
 
         .landing-logo {
@@ -159,14 +168,14 @@
         <a v-if="loggedIn" @click="logout">Logout</a>
     </header>
 
-    <div class="message" :class="{ present: messagesPresent }">{{ message }}</div>
+    <div class="message" :class="messageClass">{{ message }}</div>
 
     <main v-if="!loggedIn">
         <img class="landing-logo" src="worklogger.svg" alt="worklogger icon">
         <h1>Worklogger</h1>
         <div class="input-group">
             <label>Host</label>
-            <input id="host" name="host" type="url" v-model="jiraConfig.host">
+            <input id="host" name="host" type="url" v-model="jiraConfig.host" placeholder="ubykuo.atlassian.net">
         </div>
 
         <div class="input-group">
@@ -179,7 +188,7 @@
             <input id="password" name="password" type="password" v-model="jiraConfig.password">
         </div>
 
-        <button class="button" @click="login" @key.enter="login" :disabled="loggingIn">{{ validateCredentialsText }}
+        <button class="button" @click="login" @keyup.enter.native="login" :disabled="loggingIn">{{ validateCredentialsText }}
         </button>
     </main>
 
@@ -217,7 +226,7 @@
                       rows="4"></textarea>
         </div>
 
-        <button class="button" @click="sendWorklog" @key.enter="sendWorklog" :disabled="sendingWorklog">{{
+        <button class="button" @click="sendWorklog" @keyup.enter.native="sendWorklog" :disabled="sendingWorklog">{{
             sendButtonText }}
         </button>
     </main>
@@ -260,6 +269,7 @@
 
             // Messages
             message: '',
+            messageClass: '',
 
             // Jira client
             jiraConfig: JSON.parse(localStorage.getItem('jiraConfig')) || {
@@ -309,7 +319,7 @@
                             this.loggedIn = true;
                             this.loggingIn = false;
                             this.validateCredentialsButtonText = this.validateCredentialsText;
-                            this.displayMessage('Logged in successfully');
+                            this.displayMessage('success', 'Logged in successfully');
                             localStorage.setItem('jiraConfig', JSON.stringify(this.jiraConfig));
 
                             this.issues = response.issues;
@@ -319,7 +329,11 @@
                             this.loggingIn = false;
                             this.validateCredentialsButtonText = this.validateCredentialsText;
                             console.error(error);
+                            this.displayMessage('error', 'Incorrect credentials')
                         })
+                } else {
+                    debugger;
+                    this.displayMessage('error', 'Missing required fields');
                 }
             },
 
@@ -353,25 +367,14 @@
                 this.worklog.date = new Date().toISOString().substring(0, 10);
             },
 
-            displayMessage (message) {
+            displayMessage (klass, message) {
                 this.message = message;
+                this.messageClass = klass;
                 let timeout = setTimeout(() => {
                     this.message = '';
+                    this.messageClass = '';
                     clearTimeout(timeout);
                 }, 1500)
-            },
-
-            getUserIssues (username) {
-                this.getJiraClient().getUsersIssues(username, false)
-                    .then(function (response) {
-                        console.log(response);
-                        this.issues = response.issues;
-                        this.issuesLoaded = true;
-                        this.setSearchPlaceholder();
-                    }.bind(this))
-                    .catch(error => {
-                        console.error(error);
-                    });
             },
 
             filterIssues: function filterIssues () {
@@ -410,11 +413,12 @@
                         this.sendButtonText = this.sendText;
                         localStorage.setItem('currentIssueKey', this.worklog.issueKey);
                         this.resetFields();
-                        this.displayMessage('Worklog added successfully');
+                        this.displayMessage('success', 'Worklog added successfully');
                     })
                     .catch(error => {
                         this.sendingWorklog = false;
                         this.sendButtonText = this.sendText;
+                        this.displayMessage('error', 'There was a problem adding the worklog');
                         console.log(error);
                     })
             }
