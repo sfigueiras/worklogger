@@ -11,7 +11,7 @@
     "start": "run --x86 --mirror https://dl.nwjs.io/ ."
   },
   "window": {
-    "icon": "clock.png"
+    "icon": "worklogger.png"
   },
   "keywords": [
     "jira",
