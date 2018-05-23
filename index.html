@@ -196,7 +196,7 @@
         <input id="password" name="password" type="password" v-model="jiraConfig.password">
       </div>
 
-      <button type="submit" class="button" @click="login" :disabled="loggingIn">{{ validateCredentialsText }}
+      <button type="submit" class="button" :disabled="loggingIn">{{ validateCredentialsText }}
       </button>
     </form>
 
@@ -220,22 +220,23 @@
       <div class="input-group">
         <label>Date</label>
         <input id="date" name="date" type="date" v-model="worklog.date" :value="worklog.date">
-        <input type="time" v-model="worklog.time" :value="worklog.time">
+        <input type="time" v-model="worklog.time" :value="worklog.time" tabindex="1">
       </div>
 
       <div class="input-group">
         <label for="time-spent">Time Spent
           <span class="hint">(eg. 3w 4d 12h)</span>
         </label>
-        <input id="time-spent" name="time-spent" type="text" v-model="worklog.timeSpent">
+        <input id="time-spent" name="time-spent" type="text" v-model="worklog.timeSpent" tabindex="2">
       </div>
 
       <div class="input-group">
         <label for="description">Description</label>
-        <input id="description" name="description" v-model="worklog.comment" :value="worklog.comment" rows="4"></input>
+        <textarea id="description" name="description" v-model="worklog.comment" 
+          :value="worklog.comment" rows="4"  tabindex="3"></textarea>
       </div>
 
-      <button type="submit" class="button" @click="sendWorklog" :disabled="sendingWorklog">{{ sendButtonText }}
+      <button type="submit" class="button" :disabled="sendingWorklog">{{ sendButtonText }}
       </button>
     </form>
 
@@ -313,7 +314,6 @@
         sendingWorklog: false
       },
       created() {
-        debugger;
         if (this.validLoginCredentials()) {
           this.login();
         }
@@ -334,7 +334,6 @@
                 this.displayMessage('success', 'Logged in successfully');
                 
                 // Store credentials locally for next time
-                delete this.jiraConfig.password;
                 localStorage.setItem('jiraConfig', JSON.stringify(this.jiraConfig));
 
                 // Set focus on issue search field
@@ -430,6 +429,7 @@
         },
 
         sendWorklog() {
+          debugger;
           this.sendingWorklog = true;
           this.sendButtonText = this.sendingText;
           this.getJiraClient().addWorklog(this.worklog.issueKey, {
